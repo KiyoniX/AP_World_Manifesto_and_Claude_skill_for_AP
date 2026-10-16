@@ -1,0 +1,10 @@
+# Built documents are release assets, never committed.
+dist/
+
+__pycache__/
+*.pyc
+bin/
+obj/
+.vs/
+.idea/
+.vscode/

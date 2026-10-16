@@ -1,0 +1,6 @@
+<!-- Copy to local.props (git-ignored) and point GameDir at your own install. -->
+<Project>
+  <PropertyGroup>
+    <GameDir>C:\Program Files (x86)\Steam\steamapps\common\__GAME_NAME__</GameDir>
+  </PropertyGroup>
+</Project>

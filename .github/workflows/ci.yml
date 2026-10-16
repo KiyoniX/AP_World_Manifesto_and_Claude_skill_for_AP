@@ -1,0 +1,102 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # The Archipelago release the templates are verified against. Bump it deliberately, never track main.
+  ARCHIPELAGO_REF: "0.6.8"
+  PANDOC_VERSION: "3.12.1"
+  TYPST_VERSION: "v0.15.1"
+  SKILL: skill/archipelago-mod
+
+jobs:
+  skill-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.13"
+      - run: python "$SKILL/scripts/test_scripts.py"
+
+  # Scaffolds real projects from the templates and runs them through Archipelago and .NET, so a template that does
+  # not generate, test or build can never be released.
+  templates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          path: manifesto
+      - uses: actions/checkout@v6.0.2
+        with:
+          repository: ArchipelagoMW/Archipelago
+          ref: ${{ env.ARCHIPELAGO_REF }}
+          path: archipelago
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Scaffold sample projects
+        run: |
+          new_project="manifesto/$SKILL/scripts/new_project.py"
+          common=(--game "Template Quest" --author CI --ap-version "$ARCHIPELAGO_REF")
+          python "$new_project" sample-bizhawk "${common[@]}" --client bizhawk --token SYSTEM=GBA --token ROM_NAME=TQUEST
+          python "$new_project" sample-dotnet "${common[@]}" --client dotnet \
+            --token UNITY_VERSION=2021.3.16 --token GAME_DATA_DIR=TemplateQuest_Data
+          python sample-bizhawk/tools/check_apworld.py sample-bizhawk/apworld/template_quest
+
+      - name: Install Archipelago
+        working-directory: archipelago
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ci-requirements.txt
+          python ModuleUpdate.py --yes --force --append "WebHostLib/requirements.txt"
+          python Launcher.py --update_settings
+          cp -r ../sample-bizhawk/apworld/template_quest worlds/template_quest
+
+      - name: World tests, Archipelago's generic tests and the generation sandbox
+        working-directory: archipelago
+        run: AP_TEST_WORLDS=template_quest pytest -n auto
+
+      - name: Build the apworld
+        working-directory: archipelago
+        run: python Launcher.py "Build APWorlds" -- "Template Quest" --skip_open_folder
+
+      - name: Client bridge tests and plugin build
+        working-directory: sample-dotnet/client
+        run: |
+          dotnet test ArchipelagoBridge.Tests
+          dotnet build -c Release TemplateQuestArchipelago
+
+  manifesto:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.13"
+      - name: Install pandoc and typst (pinned official releases)
+        run: |
+          curl -fsSL -o pandoc.deb \
+            "https://github.com/jgm/pandoc/releases/download/$PANDOC_VERSION/pandoc-$PANDOC_VERSION-1-amd64.deb"
+          sudo dpkg -i pandoc.deb
+          curl -fsSL "https://github.com/typst/typst/releases/download/$TYPST_VERSION/typst-x86_64-unknown-linux-musl.tar.xz" \
+            | tar -xJ --strip-components=1 -C /usr/local/bin typst-x86_64-unknown-linux-musl/typst
+      - run: python tools/build_manifesto.py --out dist
+      - name: Add the Markdown source next to the built documents
+        run: cp manifesto/AP_World_Manifesto.md dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manifesto
+          path: dist/
+          if-no-files-found: error

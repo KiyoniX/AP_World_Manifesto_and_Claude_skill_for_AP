@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- BepInEx 5 plugin for a Unity Mono game. For IL2CPP see references/engine-unity.md (BepInEx 6, BasePlugin). -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>__CLASS__Archipelago</AssemblyName>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Copies Archipelago.MultiClient.Net and Newtonsoft.Json next to the plugin: BepInEx loads them from there. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <RestoreAdditionalProjectSources>
+      https://api.nuget.org/v3/index.json;
+      https://nuget.bepinex.dev/v3/index.json
+    </RestoreAdditionalProjectSources>
+  </PropertyGroup>
+
+  <!-- GameDir points at the local game install. It lives in local.props, which is git-ignored: game files
+       are referenced at build time, never copied into the repository. -->
+  <Import Project="local.props" Condition="Exists('local.props')" />
+
+  <ItemGroup>
+    <!-- Provided by the BepInEx install at runtime: compile against it, never ship it. -->
+    <PackageReference Include="BepInEx.Core" Version="5.4.21" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="UnityEngine.Modules" Version="__UNITY_VERSION__" IncludeAssets="compile" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(GameDir)' != ''">
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(GameDir)\__GAME_DATA_DIR__\Managed\Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ArchipelagoBridge\ArchipelagoBridge.csproj" />
+  </ItemGroup>
+
+</Project>

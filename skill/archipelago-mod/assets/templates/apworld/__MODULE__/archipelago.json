@@ -1,0 +1,6 @@
+{
+    "game": "__GAME_NAME__",
+    "minimum_ap_version": "__AP_VERSION__",
+    "world_version": "0.1.0",
+    "authors": ["__AUTHOR__"]
+}

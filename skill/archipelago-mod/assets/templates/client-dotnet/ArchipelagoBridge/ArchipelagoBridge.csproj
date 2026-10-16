@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Game-agnostic: no game or Unity reference may ever be added here. -->
+  <PropertyGroup>
+    <!-- netstandard2.0 loads in Unity 2018.1+ Mono, XNA/FNA on .NET Framework 4.6.1+ and modern .NET.
+         Games stuck on .NET 3.5 need net35 here and a Thread instead of Task.Run. -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.1" />
+  </ItemGroup>
+
+</Project>
